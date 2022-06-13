@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM python:latest
 
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND="noninteractive" apt-get -qq install -y python3 python3-pip
