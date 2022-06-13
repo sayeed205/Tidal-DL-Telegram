@@ -1,7 +1,7 @@
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
-RUN apt-get update -qq -y && apt-get upgrade -qq -y \
-    apt-get -qq install -y python3 python3-pip
+RUN apt-get update -qq && \
+    DEBIAN_FRONTEND="noninteractive" apt-get -qq install -y python3 python3-pip
 
 COPY requirements.txt .
 
