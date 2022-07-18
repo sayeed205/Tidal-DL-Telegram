@@ -1,7 +1,8 @@
-from .postgres_db import DataBaseHandle
+import json
 import psycopg2
-import psycopg2.extras
 import datetime
+import psycopg2.extras
+from .postgres_db import DataBaseHandle
 
 from bot import Config
 
@@ -236,7 +237,10 @@ class MusicDB(DataBaseHandle):
 
         music_schema = """CREATE TABLE IF NOT EXISTS music_table (
             msg_id BIGINT UNIQUE,
-            title VARCHAR(2000) DEFAULT NULL
+            title VARCHAR(2000) DEFAULT NULL,
+            artist VARCHAR(2000) DEFAULT NULL,
+            track_id VARCHAR(50) DEFAULT NULL,
+            type VARCHAR(30) DEFAULT NULL
         )"""
 
         cur = self.scur()
@@ -248,35 +252,119 @@ class MusicDB(DataBaseHandle):
         self._conn.commit()
         self.ccur(cur)
 
-    def set_music(self, msg_id, title):
+
+    # Type - "track" or "album"
+    def set_music(self, msg_id, title, artist, track_id, type):
         #title = ''.join(filter(lambda i:i not in special_characters, title))
         sql = "SELECT * FROM music_table"
         cur = self.scur()
 
-        sql = "INSERT INTO music_table(msg_id,title) VALUES(%s,%s)"
-        cur.execute(sql, (msg_id, title))
+        sql = "INSERT INTO music_table(msg_id,title,artist,track_id,type) VALUES(%s,%s,%s,%s,%s)"
+        try:
+            cur.execute(sql, (msg_id, title, artist, track_id, type))
+        except psycopg2.errors.UniqueViolation:
+            cur.execute("rollback")
 
         self.ccur(cur)
 
-    def get_music_id(self, title):
+    def get_music_id(self, title, artist, track_id, type):
         sql = "SELECT * FROM music_table WHERE title=%s"
 
         cur = self.scur()
-
         cur.execute(sql, (title,))
         if cur.rowcount > 0:
-            row = cur.fetchone()
-            return row[0]
-        else:
-            return None
+            row = cur.fetchall()
+            for item in row:
+                if item[2] == artist:
+                    if track_id:
+                        if item[3] == int(track_id):
+                            return item[0], item[2]
+                    if item[4] == type:
+                        return item[0], item[2]
+        return None, None
 
         self.ccur(cur)
 
     def __del__(self):
         super().__del__()
 
+class UserSettings(DataBaseHandle):
+    shared_users = {}
+
+    def __init__(self, dburl=None):
+        if dburl is None:
+            dburl = Config.DATABASE_URL
+        super().__init__(dburl)
+
+        cur = self.scur()
+
+        table = """CREATE TABLE IF NOT EXISTS user_settings (
+            user_id VARCHAR(50) NOT NULL,
+            json_data VARCHAR(1000) NOT NULL
+        )"""
+
+        try:
+            cur.execute(table)
+        except psycopg2.errors.UniqueViolation:
+            pass
+
+        self.ccur(cur)
+
+    def set_var(self, user_id, var_name, var_value):
+        user_id = str(user_id)
+        sql = "SELECT * FROM user_settings WHERE user_id=%s"
+        cur = self.scur(dictcur=True)
+
+        user = self.shared_users.get(user_id)
+        if user is not None:
+            self.shared_users[user_id][var_name] = var_value
+        else:
+            cur.execute(sql, (user_id,))
+            if cur.rowcount > 0:
+                user = cur.fetchone()
+                jdata = user.get("json_data")
+                jdata = json.loads(jdata)
+                jdata["LANGUAGE"] = var_value
+                self.shared_users[user_id] = jdata
+            else:
+                self.shared_users[user_id] = {var_name: var_value}
+
+        cur.execute(sql, (user_id,))
+        if cur.rowcount > 0:
+            insql = "UPDATE user_settings SET json_data = %s where user_id=%s"
+            cur.execute(insql, (json.dumps(self.shared_users.get(user_id)), user_id))
+
+        else:
+            insql = "INSERT INTO user_settings(user_id, json_data) VALUES(%s, %s)"
+            cur.execute(insql, (user_id, json.dumps(self.shared_users.get(user_id))))
+
+        self.ccur(cur)
+
+    def get_var(self, user_id, var_name):
+        user_id = str(user_id)
+        sql = "SELECT * FROM user_settings WHERE user_id=%s"
+        # search the cache
+        user = self.shared_users.get(user_id)
+        if user is not None:
+            return user.get(var_name)
+        else:
+            cur = self.scur(dictcur=True)
+
+            cur.execute(sql, (user_id,))
+            if cur.rowcount > 0:
+                user = cur.fetchone()
+                jdata = user.get("json_data")
+                jdata = json.loads(jdata)
+                self.shared_users[user_id] = jdata
+                return jdata.get(var_name)
+            else:
+                return None
+
+            self.ccur(cur)
+
 set_db = TidalSettings()
 users_db = AuthedUsers()
 admins_db = AuthedAdmins()
 chats_db = AuthedChats()
 music_db = MusicDB()
+user_settings = UserSettings()

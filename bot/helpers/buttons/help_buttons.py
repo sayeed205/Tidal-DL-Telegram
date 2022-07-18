@@ -1,14 +1,15 @@
+from bot.helpers.translations import lang
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 def cmds_button():
     inline_keyboard = [
         [
             InlineKeyboardButton(
-                text="COMMANDS",
+                text=lang.select.COMMANDS,
                 callback_data="cmdscb"
             ),
             InlineKeyboardButton(
-                text="CLOSE",
+                text=lang.select.CLOSE,
                 callback_data="close"
             )
         ]

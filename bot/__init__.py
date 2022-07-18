@@ -10,7 +10,6 @@ LOGGER = logging.getLogger(__name__)
 
 logging.getLogger("pyrogram").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("hachoir").setLevel(logging.WARNING)
 logging.getLogger("aiohttp").setLevel(logging.WARNING)
 logging.getLogger("charset_normalizer").setLevel(logging.WARNING)
 
@@ -19,13 +18,9 @@ bot = Config.BOT_USERNAME
 class CMD(object):
     START = ["start", f"start@{bot}"]
     HELP = ["help", f"help@{bot}"]
-    # List out all the commands
-    CMD_LIST = ["cmds", f"cmds@{bot}"]
-    # Open Settings Panel - TODO
+    # Open Settings Panel
     SETTINGS = ["settings", f"settings@{bot}"]
-
     DOWNLOAD = ["download", f"download@{bot}"]
-
     # Auth user or chat to use the bot
     # TODO Add cmd to remove auth
     AUTH = ["auth", f"auth@{bot}"]

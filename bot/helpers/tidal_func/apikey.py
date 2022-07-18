@@ -4,7 +4,7 @@
 @File    :  apiKey.py
 @Date    :  2021/11/30
 @Author  :  Yaronzz
-@Version :  1.0
+@Version :  3.0
 @Contact :  yaronhuang@foxmail.com
 @Desc    :
 """
@@ -60,13 +60,12 @@ __KEYS_JSON__ = '''
 '''
 __API_KEYS__ = json.loads(__KEYS_JSON__)
 __ERROR_KEY__ = {
-                    'platform': 'None',
-                    'formats': '',
-                    'clientId': '',
-                    'clientSecret': '',
+    'platform': 'None',
+    'formats': '',
+    'clientId': '',
+    'clientSecret': '',
                     'valid': 'False',
-                },
-
+},
 
 
 def getNum():
@@ -77,6 +76,11 @@ def getItem(index: int):
     if index < 0 or index >= len(__API_KEYS__['keys']):
         return __ERROR_KEY__
     return __API_KEYS__['keys'][index]
+
+
+def isItemValid(index: int):
+    item = getItem(index)
+    return item['valid'] == 'True'
 
 
 def getItems():
@@ -93,7 +97,8 @@ def getLimitIndexs():
 def getVersion():
     return __API_KEYS__['version']
 
-#Load from gist
+
+# Load from gist
 try:
     respond = requests.get('https://api.github.com/gists/48d01f5a24b4b7b37f19443977c22cd6')
     if respond.status_code == 200:
